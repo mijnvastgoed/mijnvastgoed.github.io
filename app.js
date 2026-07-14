@@ -1,4 +1,4 @@
-const properties = [
+const demoProperties = [
   {id:1,address:'Willemsparkweg 142-2',area:'Oud-Zuid',price:895000,size:104,beds:3,energy:'B',date:'Vandaag',feature:'Licht hoekappartement met balkon',photos:['https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1400&q=85','https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1400&q=85','https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1400&q=85']},
   {id:2,address:'Eerste Atjehstraat 93',area:'Indische Buurt',price:625000,size:82,beds:2,energy:'A',date:'Gisteren',feature:'Dakterras op het zuiden',photos:['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1400&q=85','https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1400&q=85','https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1400&q=85']},
   {id:3,address:'Keizersgracht 418-B',area:'Centrum',price:1275000,size:128,beds:3,energy:'C',date:'2 dagen geleden',feature:'Monumentaal wonen aan de gracht',photos:['https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1400&q=85','https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1400&q=85','https://images.unsplash.com/photo-1600566753051-f0b89df2dd90?w=1400&q=85']},
@@ -8,7 +8,7 @@ const properties = [
 ];
 
 const supabaseClient=window.supabase.createClient('https://rcqvszklticaxnegcbaf.supabase.co','sb_publishable_PsScBfmvTJFqmSSF8ToNqg_EU1PgpHm');
-let filtered=[...properties],current=0,currentUser='',saved=new Set(),drag=null,galleryIndex=0,galleryProperty=null;
+let properties=[...demoProperties],filtered=[...properties],current=0,currentUser='',saved=new Set(),drag=null,galleryIndex=0,galleryProperty=null;
 const deck=document.querySelector('#deck'),empty=document.querySelector('#emptyState'),actions=document.querySelector('#actions'),progress=document.querySelector('#progress');
 const euro=n=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
 
@@ -31,6 +31,10 @@ function persistSaved(){if(currentUser)localStorage.setItem(savedKey(),JSON.stri
 function loadSaved(){saved=new Set(currentUser?JSON.parse(localStorage.getItem(savedKey())||'[]'):[]);updateSaved()}
 function updateSaved(){document.querySelector('#savedCount').textContent=saved.size;document.querySelector('#accountLabel').textContent=currentUser?currentUser.split('@')[0]:'Inloggen';document.querySelector('#accountButton .avatar').textContent=currentUser?currentUser[0]:'↗'}
 
+function relativeDate(value){if(!value)return'Nieuw';const days=Math.max(0,Math.floor((Date.now()-new Date(value).getTime())/86400000));return days===0?'Vandaag':days===1?'Gisteren':`${days} dagen geleden`}
+function normalizeProperty(p){return{id:p.funda_id,address:p.address,area:p.area||'Amsterdam',price:Number(p.price)||0,size:Number(p.size)||0,beds:Number(p.beds)||0,energy:p.energy||'—',date:relativeDate(p.published_at),feature:p.feature||'Nieuw op Funda',photos:Array.isArray(p.photos)&&p.photos.length?p.photos:['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1400&q=85'],url:p.url||''}}
+async function loadLiveProperties(){const since=new Date(Date.now()-5*86400000).toISOString();const{data,error}=await supabaseClient.from('properties').select('*').gte('published_at',since).order('published_at',{ascending:false});if(!error&&data?.length){properties=data.map(normalizeProperty)}filtered=[...properties];current=0;setupFilters();renderDeck()}
+
 function openAccount(){const m=document.querySelector('#accountModal');m.classList.add('open');m.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';setTimeout(()=>document.querySelector('#emailInput').focus(),50)}
 function closeAccount(){document.querySelector('#accountModal').classList.remove('open');document.querySelector('#accountModal').setAttribute('aria-hidden','true');document.body.style.overflow=''}
 function renderSaved(){const list=document.querySelector('#savedList'),items=properties.filter(p=>saved.has(p.id));document.querySelector('#userEmail').textContent=currentUser;document.querySelector('#userInitial').textContent=currentUser[0];list.innerHTML=items.length?items.map(p=>`<article class="saved-property"><img src="${p.photos[0]}" alt="${p.address}"><div class="saved-property-info"><button class="remove-saved" data-remove="${p.id}" aria-label="Verwijder ${p.address}">×</button><h3>${p.address}</h3><p>Amsterdam ${p.area} · ${p.size} m²</p><strong>${euro(p.price)} k.k.</strong></div></article>`).join(''):`<div class="no-saved"><span>♡</span><h3>Nog niets bewaard</h3><p>Tik op het hartje bij een woning die je mooi vindt.</p></div>`}
@@ -48,4 +52,4 @@ document.querySelector('#loginForm').onsubmit=async e=>{e.preventDefault();const
 document.querySelector('#forgotButton').onclick=async()=>{const email=document.querySelector('#emailInput').value.trim().toLowerCase(),feedback=document.querySelector('#formError');feedback.className='form-error';if(!email){feedback.textContent='Vul eerst je e-mailadres in.';return}const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:'https://mijnvastgoed.github.io/'});feedback.className=`form-error${error?'':' success'}`;feedback.textContent=error?error.message:'Je ontvangt zo een e-mail om je wachtwoord te wijzigen.'};
 document.querySelector('#logoutButton').onclick=async()=>{await supabaseClient.auth.signOut();currentUser='';saved.clear();closeSaved();updateSaved()};document.querySelector('#savedList').onclick=e=>{const id=+e.target.dataset.remove;if(!id)return;saved.delete(id);persistSaved();updateSaved();renderSaved()};
 supabaseClient.auth.onAuthStateChange(async(event,session)=>{currentUser=session?.user?.email||'';loadSaved();if(event==='PASSWORD_RECOVERY'){const newPassword=window.prompt('Kies een nieuw wachtwoord (minimaal 6 tekens):');if(newPassword){const {error}=await supabaseClient.auth.updateUser({password:newPassword});window.alert(error?error.message:'Je wachtwoord is gewijzigd.')}}});
-setupFilters();supabaseClient.auth.getSession().then(({data})=>{currentUser=data.session?.user?.email||'';loadSaved()});renderDeck();
+supabaseClient.auth.getSession().then(({data})=>{currentUser=data.session?.user?.email||'';loadSaved()});loadLiveProperties();
