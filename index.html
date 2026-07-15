@@ -8,15 +8,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2361296620186470" crossorigin="anonymous"></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#" aria-label="Nieuw in Amsterdam">
-      <span class="brand-mark"><span></span></span>
-      <span>nieuw<span class="brand-dot">.</span></span>
-    </a>
+    <div class="topbar-left">
+      <a class="brand" href="#" aria-label="Nieuw in Amsterdam">
+        <span class="brand-mark"><span></span></span>
+        <span>nieuw<span class="brand-dot">.</span></span>
+      </a>
+      <div class="offer-switch" role="group" aria-label="Kies koop- of huurwoningen">
+        <button id="buyMode" class="active" type="button" aria-pressed="true">Koop</button>
+        <button id="rentMode" type="button" aria-pressed="false">Huur</button>
+      </div>
+    </div>
     <div class="week-pill"><span></span> Nieuw in Amsterdam</div>
     <div class="account-actions"><button class="saved-button" id="savedButton" aria-label="Bekijk bewaarde woningen">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5a5.5 5.5 0 0 0 1.1-8.9Z"/></svg>
@@ -28,7 +34,7 @@
     <section class="intro">
       <p class="eyebrow">VERS VAN DE MARKT</p>
       <h1>Vind je nieuwe<br><em>thuis</em> in Amsterdam.</h1>
-      <p class="subtitle">Een compleet overzicht van alle woningen die deze week te koop aangeboden worden in Amsterdam.</p>
+      <p class="subtitle" id="introSubtitle">Een compleet overzicht van alle woningen die deze week te koop aangeboden worden in Amsterdam.</p>
     </section>
 
     <section class="filters" aria-label="Woningfilters">
@@ -127,6 +133,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
