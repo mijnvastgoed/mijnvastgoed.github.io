@@ -53,7 +53,9 @@ function renderDeck(){
     card.className='property-card';
     card.dataset.key=propertyKey(property);
     const position=filtered.indexOf(property)+1;
-    card.innerHTML=`<div class="swipe-stamp next">VOLGENDE</div><div class="swipe-stamp save">BEWAAR</div><div class="card-photo" tabindex="0" role="button" aria-label="Bekijk alle foto's van ${property.address}"><img src="${property.photos[0]}" alt="Interieur van ${property.address}"><span class="date-badge">${property.date}</span><span class="photo-count">▧ ${property.photos.length} foto's</span></div><div class="card-info"><span class="card-number">${String(position).padStart(2,'0')} / ${String(filtered.length).padStart(2,'0')}</span><h2>${property.address}</h2><p class="neighborhood">${areaText(property)}</p><p class="price">${euro(property.price)} <small>${priceSuffix(property)}</small></p><div class="facts"><span class="fact"><strong>${property.size} m²</strong>Wonen</span><span class="fact"><strong>${property.beds}</strong>Slaapkamers</span><span class="fact"><strong>${property.energy}</strong>Energielabel</span></div><span class="feature">${property.feature}</span><div class="property-links"><span class="details-link">Tik op de foto voor meer →</span>${property.url?`<a class="funda-link" href="${property.url}" target="_blank" rel="noopener noreferrer">Bekijk op Funda ↗</a>`:''}</div></div>`;
+    const hasPhotos=property.photos.length>0;
+    const photoAttributes=hasPhotos?`tabindex="0" role="button" aria-label="Bekijk alle foto's van ${property.address}"`:'';
+    card.innerHTML=`<div class="swipe-stamp next">VOLGENDE</div><div class="swipe-stamp save">BEWAAR</div><div class="card-photo${hasPhotos?'':' no-photo'}" ${photoAttributes}>${hasPhotos?`<img src="${property.photos[0]}" alt="Interieur van ${property.address}">`:''}<span class="date-badge">${property.date}</span>${hasPhotos?`<span class="photo-count">▧ ${property.photos.length} foto's</span>`:''}</div><div class="card-info"><span class="card-number">${String(position).padStart(2,'0')} / ${String(filtered.length).padStart(2,'0')}</span><h2>${property.address}</h2><p class="neighborhood">${areaText(property)}</p><p class="price">${euro(property.price)} <small>${priceSuffix(property)}</small></p><div class="facts"><span class="fact"><strong>${property.size} m²</strong>Wonen</span><span class="fact"><strong>${property.beds}</strong>Slaapkamers</span><span class="fact"><strong>${property.energy}</strong>Energielabel</span></div><span class="feature">${property.feature}</span><div class="property-links">${hasPhotos?'<span class="details-link">Tik op de foto voor meer →</span>':''}${property.url?`<a class="funda-link" href="${property.url}" target="_blank" rel="noopener noreferrer">Bekijk op Funda ↗</a>`:''}</div></div>`;
     deck.appendChild(card);
   });
   const done=current>=filtered.length;
@@ -80,8 +82,10 @@ function bindTopCard(){
   const property=allProperties.find(item=>propertyKey(item)===card.dataset.key);
   if(!property)return;
   const photo=card.querySelector('.card-photo');
-  photo.onclick=()=>openGallery(property);
-  photo.onkeydown=event=>{if(event.key==='Enter')openGallery(property)};
+  if(property.photos.length){
+    photo.onclick=()=>openGallery(property);
+    photo.onkeydown=event=>{if(event.key==='Enter')openGallery(property)};
+  }
   card.onpointerdown=event=>{
     if(event.target.closest('.card-photo,.funda-link'))return;
     drag={x:event.clientX};
@@ -152,7 +156,7 @@ function normalizeProperty(property){
     energy:property.energy||'—',
     date:relativeDate(property.published_at),
     feature:property.feature||(listingType==='huur'?'Nieuw te huur':'Nieuw te koop'),
-    photos:Array.isArray(property.photos)&&property.photos.length?property.photos:['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1400&q=85'],
+    photos:Array.isArray(property.photos)?property.photos.filter(photo=>typeof photo==='string'&&photo.trim()):[],
     url:property.url||''
   };
 }
@@ -204,7 +208,7 @@ function renderSaved(){
   const items=allProperties.filter(property=>saved.has(propertyKey(property)));
   document.querySelector('#userEmail').textContent=currentUser;
   document.querySelector('#userInitial').textContent=currentUser[0];
-  list.innerHTML=items.length?items.map(property=>`<article class="saved-property"><img src="${property.photos[0]}" alt="${property.address}"><div class="saved-property-info"><button class="remove-saved" data-remove="${propertyKey(property)}" aria-label="Verwijder ${property.address}">×</button><h3>${property.address}</h3><p>${areaText(property)} · ${property.size} m² · ${property.listingType==='huur'?'Huur':'Koop'}</p><strong>${euro(property.price)} ${priceSuffix(property)}</strong></div></article>`).join(''):`<div class="no-saved"><span>♡</span><h3>Nog niets bewaard</h3><p>Tik op het hartje bij een woning die je mooi vindt.</p></div>`;
+  list.innerHTML=items.length?items.map(property=>`<article class="saved-property">${property.photos.length?`<img src="${property.photos[0]}" alt="${property.address}">`:'<div class="saved-photo-empty" aria-hidden="true"></div>'}<div class="saved-property-info"><button class="remove-saved" data-remove="${propertyKey(property)}" aria-label="Verwijder ${property.address}">×</button><h3>${property.address}</h3><p>${areaText(property)} · ${property.size} m² · ${property.listingType==='huur'?'Huur':'Koop'}</p><strong>${euro(property.price)} ${priceSuffix(property)}</strong></div></article>`).join(''):`<div class="no-saved"><span>♡</span><h3>Nog niets bewaard</h3><p>Tik op het hartje bij een woning die je mooi vindt.</p></div>`;
 }
 function openSaved(){if(!currentUser){openAccount();return}renderSaved();document.querySelector('#savedPanel').classList.add('open');document.querySelector('#savedPanel').setAttribute('aria-hidden','false');document.body.style.overflow='hidden'}
 function closeSaved(){document.querySelector('#savedPanel').classList.remove('open');document.querySelector('#savedPanel').setAttribute('aria-hidden','true');document.body.style.overflow=''}
@@ -254,6 +258,7 @@ function applyFilters(){
 }
 
 function openGallery(property){
+  if(!property.photos.length)return;
   galleryProperty=property;
   galleryIndex=0;
   updateGallery();
@@ -263,6 +268,7 @@ function openGallery(property){
   document.body.style.overflow='hidden';
 }
 function updateGallery(){
+  if(!galleryProperty||!galleryProperty.photos.length)return;
   document.querySelector('#galleryImage').src=galleryProperty.photos[galleryIndex];
   document.querySelector('#galleryAddress').textContent=galleryProperty.address;
   document.querySelector('#galleryCounter').textContent=`${galleryIndex+1} / ${galleryProperty.photos.length}`;
